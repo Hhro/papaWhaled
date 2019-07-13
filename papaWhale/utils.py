@@ -1,5 +1,7 @@
 import docker
 
+get_port = lambda c : c.ports['31000/tcp'][0]['HostPort']
+
 def get_chall_containers(filters=None):
     """
     Retrieve containers where challenges are running on.

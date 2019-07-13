@@ -2,7 +2,7 @@ import os
 import subprocess
 import docker
 from flask import jsonify
-from .utils import get_chall_containers
+from .utils import get_chall_containers,get_port
 
 SUPPLIER_PATH = os.environ["SUPPLIER"]
 SUCCESS = 200
@@ -18,7 +18,8 @@ def list_challs():
     challs = []
 
     for chall_container in chall_containers:
-        challs.append({"name":chall_container.name,"status":chall_container.status})
+        challs.append({"name": chall_container.name,
+                       "status": chall_container.status, "port": get_port(chall_container)})
 
     return jsonify(challs)
 
