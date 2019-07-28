@@ -4,10 +4,12 @@ from papaWhale.challs import list_challs
 from papaWhale.challs import restart_challs
 from papaWhale.challs import run_auto_chall, run_cdock_chall, run_custom_chall
 from papaWhale.dockutils import find_avail_port, check_port_avail
+from common.comm import Message
 import werkzeug
 
 SUCCESS=200
 NOT_EXIST=404
+COLLISION=409
 SERVER_ERROR=500
 
 class ChallengeListAPI(Resource):
@@ -16,6 +18,7 @@ class ChallengeListAPI(Resource):
 
 class ChallengeUploadAPI(Resource):
     def post(self):
+        msg = Message("500","Something Wrong...")
         parser = reqparse.RequestParser()
         parser.add_argument("name",required=True,type=str)
         parser.add_argument("arch",type=str)
@@ -37,7 +40,9 @@ class ChallengeUploadAPI(Resource):
         if port == "auto":
             port = find_avail_port()
         else:
-            check_port_avail(port)
+            if not check_port_avail(port):
+                msg = Message(COLLISION,"port {} is already used.".format(port))
+                return msg.jsonify()
         
         if chal_type == "auto":
             arch = args["arch"]
@@ -51,16 +56,13 @@ class ChallengeUploadAPI(Resource):
         chal_file = args["file"]
 
         if chal_type == "auto":
-            status = run_auto_chall(name,port,arch,ver,chal_file,flag)
+            msg = run_auto_chall(name,port,arch,ver,chal_file,flag)
         elif chal_type == "custom_dock":
             status = run_cdock_chall(name,port,docker_file,chal_file)
         elif chal_type == "full_custom":
             status = run_custom_chall(name,port,run_sh,stop_sh,chal_file)
         
-        if status == SUCCESS:
-            msg = "Running {} succeeded.".format(name)
-        elif status == SERVER_ERROR:
-            msg = "Error occuered. Check again please"
+        return msg.jsonify()
 
 class ChallengeRestartAPI(Resource):
     def post(self):

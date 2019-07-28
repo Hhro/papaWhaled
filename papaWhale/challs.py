@@ -6,18 +6,25 @@ from flask import jsonify
 from .dockutils import get_chall_containers,get_port,gen_dockerfile
 from .fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_dir_perm
 from .tester import do_chall_test
+from common.comm import Message
 
 SUPPLIER_PATH = os.environ["SUPPLIER"]
 SUCCESS = 200
+INVALID = 400
 NOT_EXIST = 404
+COLLISION = 409
+TEST_FAIL = 520
+BUILD_FAIL = 521
+RUN_FAIL = 522
 SERVER_ERROR = 500
+
 
 def list_challs():
     """
     Return challenge list in json form
     """
 
-    chall_containers = get_chall_containers()
+    chall_containers = get_chall_containers(filters={"status":"running"})
     challs = []
 
     for chall_container in chall_containers:
@@ -30,22 +37,24 @@ def run_auto_chall(name,port,arch,ver,chal_file,flag):
     chal_dir_path = Path(SUPPLIER_PATH).joinpath("dock_"+name)
 
     if is_dir_exist(chal_dir_path):
-        return SERVER_ERROR
+        return Message(COLLISION, "{} is already registred. Please use another name.".format(name))
 
     init_chall_dir(chal_dir_path,chal_file,flag)
     if not check_chall_dir(chal_dir_path,"auto"):
-        return SERVER_ERROR
+        return Message(INVALID, "Request is invalid. Check your chall.zip again please.")
     
     gen_dockerfile(chal_dir_path,name,port,arch,ver)
     set_chall_dir_perm(chal_dir_path)
 
-    subprocess.call(str(chal_dir_path.joinpath("build.sh")),cwd=str(chal_dir_path))
-    subprocess.call(str(chal_dir_path.joinpath("run.sh")),cwd=str(chal_dir_path))
+    if subprocess.call(str(chal_dir_path.joinpath("build.sh")),cwd=str(chal_dir_path)):
+        return Message(BUILD_FAIL, "Build dockerfile is failed.")
+    if subprocess.call(str(chal_dir_path.joinpath("run.sh")),cwd=str(chal_dir_path)):
+        return Message(RUN_FAIL, "Run container is failed.")
     
     if do_chall_test(chal_dir_path,port,flag):
-        return SUCCESS
+        return Message(SUCCESS, "Challenge '{}' is now running on {}".format(name,port),port)
     else:
-        return SERVER_ERROR
+        return Message(TEST_FAIL, "Run challenge is failed. Something wrong on your chall files or test file")
 
 #TODO
 def run_cdock_chall(name,port,chal_file):

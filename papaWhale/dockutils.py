@@ -38,7 +38,7 @@ def find_avail_port():
     ports = get_used_ports()
 
     for port in range(31000,32000):
-        if port not in ports:
+        if str(port) not in ports:
             break
 
     return str(port)
