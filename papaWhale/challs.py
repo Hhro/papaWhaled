@@ -1,8 +1,11 @@
 import os
 import subprocess
 import docker
+from pathlib import Path
 from flask import jsonify
-from .utils import get_chall_containers,get_port
+from .dockutils import get_chall_containers,get_port,gen_dockerfile
+from .fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_dir_perm
+from .tester import do_chall_test
 
 SUPPLIER_PATH = os.environ["SUPPLIER"]
 SUCCESS = 200
@@ -23,6 +26,34 @@ def list_challs():
 
     return jsonify(challs)
 
+def run_auto_chall(name,port,arch,ver,chal_file,flag):
+    chal_dir_path = Path(SUPPLIER_PATH).joinpath("dock_"+name)
+
+    if is_dir_exist(chal_dir_path):
+        return SERVER_ERROR
+
+    init_chall_dir(chal_dir_path,chal_file,flag)
+    if not check_chall_dir(chal_dir_path,"auto"):
+        return SERVER_ERROR
+    
+    gen_dockerfile(chal_dir_path,name,port,arch,ver)
+    set_chall_dir_perm(chal_dir_path)
+
+    subprocess.call(str(chal_dir_path.joinpath("build.sh")),cwd=str(chal_dir_path))
+    subprocess.call(str(chal_dir_path.joinpath("run.sh")),cwd=str(chal_dir_path))
+    
+    if do_chall_test(chal_dir_path,port,flag):
+        return SUCCESS
+    else:
+        return SERVER_ERROR
+
+#TODO
+def run_cdock_chall(name,port,chal_file):
+    pass
+
+#TODO
+def run_custom_chall(name,port,run_sh,stop_sh,chal_file):
+    pass
 
 def restart_challs(name):
     """
