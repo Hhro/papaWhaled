@@ -108,7 +108,11 @@ def gen_dockerfile(path,name,port,arch,ver):
         f_termsh.close()
     
 def save_dockerfile(name,port,path,dockerfile):
+    with open(str(path.joinpath("props.json")),"r") as props:
+        bin = json.load(props)["bin"]
+
     dockerfile = base64.b64decode(dockerfile).decode()
+    dockerfile=dockerfile.format(bin=bin)
 
     build_sh = (
     "#!/bin/bash\n"
