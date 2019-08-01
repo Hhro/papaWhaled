@@ -32,7 +32,7 @@ def check_chall_dir(path,chal_type):
     if chal_type == "auto":
         req_props = ["bin","test"]
     elif chal_type == "cdock":
-        pass
+        req_props = ["bin","test"]
     elif chal_type == "custom":
         pass
     

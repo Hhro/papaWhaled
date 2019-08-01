@@ -1,5 +1,6 @@
 import docker
 import json
+import base64
 
 get_port = lambda c : c.ports['31000/tcp'][0]['HostPort']
 check_port_avail = lambda p : p not in get_used_ports()
@@ -106,4 +107,42 @@ def gen_dockerfile(path,name,port,arch,ver):
         f_termsh.write(term_sh)
         f_termsh.close()
     
+def save_dockerfile(name,port,path,dockerfile):
+    dockerfile = base64.b64decode(dockerfile).decode()
 
+    build_sh = (
+    "#!/bin/bash\n"
+    "docker rmi {}\n"
+    "docker build . -t {}"
+    ).format(name,name)
+
+    run_sh = (
+    "#!/bin/bash\n"
+    "docker kill cappit_{} 2>/dev/null\n"
+    "docker rm cappit_{} 2>/dev/null\n"
+    "docker run --privileged -p {}:31000 -dit --name cappit_{} {}"
+    ).format(name,name,port,name,name)
+
+    term_sh = (
+    "#!/bin/bash\n"
+    "docker kill cappit_{} 2>/dev/null\n"
+    "docker rm cappit_{} 2>/dev/null\n"
+    "docker rmi {} 2>/dev/null"
+    ).format(name,name,name)
+
+    with open(str(path.joinpath("Dockerfile")),"w") as f_dfile:
+        f_dfile.write(dockerfile)
+        f_dfile.close()
+
+    with open(str(path.joinpath("build.sh")),"w") as f_buildsh:
+        f_buildsh.write(build_sh)
+        f_buildsh.close()
+    
+    with open(str(path.joinpath("run.sh")),"w") as f_runsh:
+        f_runsh.write(run_sh)
+        f_runsh.close()
+    
+    with open(str(path.joinpath("term.sh")),"w") as f_termsh:
+        f_termsh.write(term_sh)
+        f_termsh.close()
+        

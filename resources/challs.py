@@ -25,7 +25,7 @@ class ChallengeUploadAPI(Resource):
         parser.add_argument("chal-type",required=True,type=str)
         parser.add_argument("ver",type=str)
         parser.add_argument("port",type=str)
-        parser.add_argument("docker-file",type=str)
+        parser.add_argument("dockerfile",type=str)
         parser.add_argument("run-sh",type=str)
         parser.add_argument("stop-sh",type=str)
         parser.add_argument("file",required=True,type=werkzeug.datastructures.FileStorage,location='files')
@@ -48,7 +48,7 @@ class ChallengeUploadAPI(Resource):
             arch = args["arch"]
             ver = args["ver"]
         elif chal_type == "custom_dock":
-            docker_file = args["docker-file"]
+            dockerfile = args["dockerfile"]
         elif chal_type == "full_custom":
             run_sh = args["run-sh"]
             stop_sh = args["stop-sh"]
@@ -58,7 +58,8 @@ class ChallengeUploadAPI(Resource):
         if chal_type == "auto":
             msg = run_auto_chall(name,port,arch,ver,chal_file,flag)
         elif chal_type == "custom_dock":
-            status = run_cdock_chall(name,port,docker_file,chal_file)
+            msg = run_cdock_chall(name,port,chal_file,dockerfile,flag)
+        #TODO
         elif chal_type == "full_custom":
             status = run_custom_chall(name,port,run_sh,stop_sh,chal_file)
         
