@@ -120,7 +120,7 @@ def terminate_challs(name):
     names = [chall.name[7:] for chall in challs]  # discard 'cappit_' prefix
 
     if name in names:
-        if not subprocess.call(str(chall_path.joinpath("run.sh")), shell=True):
+        if not subprocess.call(str(chall_path.joinpath("term.sh")), shell=True):
             shutil.rmtree(str(chall_path))
             return Message(SUCCESS,"Terminate {} succeed.".format(name))
         else:

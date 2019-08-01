@@ -44,7 +44,7 @@ class ChallengeUploadAPI(Resource):
         else:
             if not check_port_avail(port):
                 msg = Message(COLLISION,"port {} is already used.".format(port))
-                return Response(response=json.dumps(msg),status=msg.status,mimetype='application/json')
+                return Response(response=json.dumps(msg.jsonify()),status=msg.status,mimetype='application/json')
         
         if chal_type == "auto":
             arch = args["arch"]
@@ -68,7 +68,7 @@ class ChallengeUploadAPI(Resource):
         if msg.status == SUCCESS:
             return msg.jsonify()
         else:
-            return Response(response=json.dumps(msg),status=msg.status,mimetype='application/json')
+            return Response(response=json.dumps(msg.jsonify()),status=msg.status,mimetype='application/json')
         
 class ChallengeRestartAPI(Resource):
     def post(self):
@@ -81,7 +81,7 @@ class ChallengeRestartAPI(Resource):
         if msg.status==SUCCESS:
             return msg.jsonify()
         else:
-            return Response(response=json.dumps(msg),status=msg.status,mimetype='application/json')
+            return Response(response=json.dumps(msg.jsonify()),status=msg.status,mimetype='application/json')
 
 class ChallengeTerminateAPI(Resource):
     def post(self):
@@ -94,4 +94,4 @@ class ChallengeTerminateAPI(Resource):
         if msg.status==SUCCESS:
             return msg.jsonify()
         else:
-            return Response(response=json.dumps(msg),status=msg.status,mimetype='application/json')
+            return Response(response=json.dumps(msg.jsonify()),status=msg.status,mimetype='application/json')
