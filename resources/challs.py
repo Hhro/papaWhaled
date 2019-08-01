@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import jsonify, Response
 from flask_restful import Resource, reqparse, abort
 from papaWhale.challs import list_challs
 from papaWhale.challs import restart_challs
@@ -6,6 +6,7 @@ from papaWhale.challs import run_auto_chall, run_cdock_chall, run_custom_chall
 from papaWhale.dockutils import find_avail_port, check_port_avail
 from common.comm import Message
 import werkzeug
+import json
 
 SUCCESS=200
 NOT_EXIST=404
@@ -42,7 +43,7 @@ class ChallengeUploadAPI(Resource):
         else:
             if not check_port_avail(port):
                 msg = Message(COLLISION,"port {} is already used.".format(port))
-                return msg.jsonify()
+                return Response(response=json.dumps(dict(error=msg.body)),status=msg.status,mimetype='application/json')
         
         if chal_type == "auto":
             arch = args["arch"]
@@ -63,20 +64,21 @@ class ChallengeUploadAPI(Resource):
         elif chal_type == "full_custom":
             status = run_custom_chall(name,port,run_sh,stop_sh,chal_file)
         
-        return msg.jsonify()
-
+        if msg.status == SUCCESS:
+            return msg.jsonify()
+        else:
+            return Response(response=json.dumps(dict(error=msg.body)),status=msg.status,mimetype='application/json')
+        
 class ChallengeRestartAPI(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument("name", type=str)
         args = parser.parse_args()
         name = args["name"]
-        status = restart_challs(name)
+        msg = restart_challs(name)
 
-        if status==SUCCESS:
+        if msg.status==SUCCESS:
             msg = "Restart {} succeeded.".format(name)
             return jsonify(msg=msg)
-        elif status==NOT_EXIST:
-            abort(404,msg="Challenge {} is not exist.".format(name))
-        elif status==SERVER_ERROR:
-            abort(500,msg="Restart {} failed".format(name))
+        else:
+            return Response(response=json.dumps(dict(error=msg.body)),status=msg.status,mimetype='application/json')

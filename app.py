@@ -1,11 +1,13 @@
 import os
 from flask import Flask
 from flask_restful import Api
+from flask_cors import CORS
 from resources.challs import ChallengeListAPI
 from resources.challs import ChallengeUploadAPI
 from resources.challs import ChallengeRestartAPI
 
 app = Flask(__name__)
+cors = CORS(app,resources={"/*":{"origins":"*"}})
 api = Api(app)
 
 api.add_resource(ChallengeListAPI,'/challs',endpoint="challenges")

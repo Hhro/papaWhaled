@@ -97,8 +97,8 @@ def restart_challs(name):
 
     if name in names:
         if not subprocess.call(SUPPLIER_PATH+"dock_{}/run.sh".format(name), shell=True):
-            return SUCCESS
+            return Message(200,"Restart {} succeed.".format(name))
         else:
-            return SERVER_ERROR
+            return Message(500,"Restart {} failed. You need to report server manager.".format(name))
     else:
-        return NOT_EXIST
+        return Message(404,"Challenge {} is not exist.".format(name))
