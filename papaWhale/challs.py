@@ -1,5 +1,6 @@
 import os
 import subprocess
+import shutil
 import docker
 from pathlib import Path
 from flask import jsonify
@@ -91,14 +92,38 @@ def restart_challs(name):
     Returns:
         msg (str): Success/error log.
     """
+    chall_path = Path(SUPPLIER_PATH+"dock_{}".format(name))
 
     challs = get_chall_containers()
     names = [chall.name[7:] for chall in challs]  # discard 'cappit_' prefix
 
     if name in names:
-        if not subprocess.call(SUPPLIER_PATH+"dock_{}/run.sh".format(name), shell=True):
-            return Message(200,"Restart {} succeed.".format(name))
+        if not subprocess.call(str(chall_path.joinpath("run.sh")), shell=True):
+            return Message(SUCCESS,"Restart {} succeed.".format(name))
         else:
-            return Message(500,"Restart {} failed. You need to report server manager.".format(name))
+            return Message(SERVER_ERROR,"Restart {} failed. You need to report server manager.".format(name))
     else:
-        return Message(404,"Challenge {} is not exist.".format(name))
+        return Message(NOT_EXIST,"Challenge {} is not exist.".format(name))
+
+def terminate_challs(name):
+    """
+    Terminate challenge 'name'
+
+    Parameters:
+        name (str): challenge's name. It must not include prefix 'cappit_'.
+    Returns:
+        msg (str): Success/error log.
+    """
+    chall_path = Path(SUPPLIER_PATH+"dock_{}".format(name))
+
+    challs = get_chall_containers()
+    names = [chall.name[7:] for chall in challs]  # discard 'cappit_' prefix
+
+    if name in names:
+        if not subprocess.call(str(chall_path.joinpath("run.sh")), shell=True):
+            shutil.rmtree(str(chall_path))
+            return Message(SUCCESS,"Terminate {} succeed.".format(name))
+        else:
+            return Message(SERVER_ERROR,"Terminate {} failed. You need to report server manager.".format(name))
+    else:
+        return Message(NOT_EXIST,"Challenge {} is not exist.".format(name))

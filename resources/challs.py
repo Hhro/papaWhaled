@@ -2,6 +2,7 @@ from flask import jsonify, Response
 from flask_restful import Resource, reqparse, abort
 from papaWhale.challs import list_challs
 from papaWhale.challs import restart_challs
+from papaWhale.challs import terminate_challs
 from papaWhale.challs import run_auto_chall, run_cdock_chall, run_custom_chall
 from papaWhale.dockutils import find_avail_port, check_port_avail
 from common.comm import Message
@@ -43,7 +44,7 @@ class ChallengeUploadAPI(Resource):
         else:
             if not check_port_avail(port):
                 msg = Message(COLLISION,"port {} is already used.".format(port))
-                return Response(response=json.dumps(dict(error=msg.body)),status=msg.status,mimetype='application/json')
+                return Response(response=json.dumps(msg),status=msg.status,mimetype='application/json')
         
         if chal_type == "auto":
             arch = args["arch"]
@@ -67,7 +68,7 @@ class ChallengeUploadAPI(Resource):
         if msg.status == SUCCESS:
             return msg.jsonify()
         else:
-            return Response(response=json.dumps(dict(error=msg.body)),status=msg.status,mimetype='application/json')
+            return Response(response=json.dumps(msg),status=msg.status,mimetype='application/json')
         
 class ChallengeRestartAPI(Resource):
     def post(self):
@@ -78,7 +79,19 @@ class ChallengeRestartAPI(Resource):
         msg = restart_challs(name)
 
         if msg.status==SUCCESS:
-            msg = "Restart {} succeeded.".format(name)
-            return jsonify(msg=msg)
+            return msg.jsonify()
         else:
-            return Response(response=json.dumps(dict(error=msg.body)),status=msg.status,mimetype='application/json')
+            return Response(response=json.dumps(msg),status=msg.status,mimetype='application/json')
+
+class ChallengeTerminateAPI(Resource):
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument("name", type=str)
+        args = parser.parse_args()
+        name = args["name"]
+        msg = terminate_challs(name)
+
+        if msg.status==SUCCESS:
+            return msg.jsonify()
+        else:
+            return Response(response=json.dumps(msg),status=msg.status,mimetype='application/json')
