@@ -1,4 +1,4 @@
-virtualenv
+pathlib
 flask
 flask_restful
 flask_cors
