@@ -1,4 +1,6 @@
+virtualenv
 flask
 flask_restful
+flask_cors
 docker
 pytest

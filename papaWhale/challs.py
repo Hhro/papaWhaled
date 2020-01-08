@@ -28,7 +28,7 @@ def list_challs():
     challs = []
 
     for chall_container in chall_containers:
-        challs.append({"name": chall_container.name,
+        challs.append({"name": chall_container.name[7:],
                        "status": chall_container.status, "port": get_port(chall_container)})
 
     return jsonify(challs)
