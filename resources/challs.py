@@ -27,10 +27,10 @@ class ChallengeUploadAPI(Resource):
         parser.add_argument("chal-type",required=True,type=str)
         parser.add_argument("ver",type=str)
         parser.add_argument("port",type=str)
-        parser.add_argument("dockerfile",type=str)
+        parser.add_argument("dockerfile",type=werkzeug.datastructures.FileStorage, location='files')
         parser.add_argument("run-sh",type=str)
         parser.add_argument("stop-sh",type=str)
-        parser.add_argument("file",required=True,type=werkzeug.datastructures.FileStorage,location='files')
+        parser.add_argument("file",required=True,type=werkzeug.datastructures.FileStorage, location='files')
         parser.add_argument("flag",required=True,type=str)
 
         args = parser.parse_args()

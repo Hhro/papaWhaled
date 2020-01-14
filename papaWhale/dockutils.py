@@ -111,28 +111,28 @@ def save_dockerfile(name,port,path,dockerfile):
     with open(str(path.joinpath("props.json")),"r") as props:
         bin = json.load(props)["bin"]
 
-    dockerfile = base64.b64decode(dockerfile).decode()
-    dockerfile=dockerfile.format(bin=bin)
+    dockerfile = dockerfile.stream.read()
+    dockerfile = dockerfile.decode().format(bin=bin)
 
     build_sh = (
     "#!/bin/bash\n"
-    "docker rmi {}\n"
-    "docker build . -t {}"
-    ).format(name,name)
+    "docker rmi {name}\n"
+    "docker build . -t {name}"
+    ).format(name=name)
 
     run_sh = (
     "#!/bin/bash\n"
-    "docker kill cappit_{} 2>/dev/null\n"
-    "docker rm cappit_{} 2>/dev/null\n"
-    "docker run --privileged -p {}:31000 -dit --name cappit_{} {}"
-    ).format(name,name,port,name,name)
+    "docker kill cappit_{name} 2>/dev/null\n"
+    "docker rm cappit_{name} 2>/dev/null\n"
+    "docker run --privileged -p {port}:31000 -dit --name cappit_{name} {name}"
+    ).format(name=name,port=port)
 
     term_sh = (
     "#!/bin/bash\n"
-    "docker kill cappit_{} 2>/dev/null\n"
-    "docker rm cappit_{} 2>/dev/null\n"
-    "docker rmi {} 2>/dev/null"
-    ).format(name,name,name)
+    "docker kill cappit_{name} 2>/dev/null\n"
+    "docker rm cappit_{name} 2>/dev/null\n"
+    "docker rmi {name} 2>/dev/null"
+    ).format(name=name)
 
     with open(str(path.joinpath("Dockerfile")),"w") as f_dfile:
         f_dfile.write(dockerfile)
