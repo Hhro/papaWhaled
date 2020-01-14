@@ -1,6 +1,8 @@
+pyopenssl
 pathlib
 flask
 flask_restful
+flask_sslify
 flask_cors
 docker
 pytest
