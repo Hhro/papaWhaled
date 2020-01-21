@@ -1,0 +1,4 @@
+{
+    "bin": "splaid_birch",
+    "test": "test.py"
+}
