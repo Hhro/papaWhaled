@@ -1,4 +1,7 @@
-from flask import jsonify, Response
+import os
+import werkzeug
+import json
+from flask import jsonify, Response, send_from_directory
 from flask_restful import Resource, reqparse, abort
 from papaWhale.challs import list_challs
 from papaWhale.challs import restart_challs
@@ -6,8 +9,6 @@ from papaWhale.challs import terminate_challs
 from papaWhale.challs import run_auto_chall, run_cdock_chall, run_custom_chall
 from papaWhale.dockutils import find_avail_port, check_port_avail
 from common.comm import Message
-import werkzeug
-import json
 
 SUCCESS=200
 NOT_EXIST=404
@@ -95,3 +96,8 @@ class ChallengeTerminateAPI(Resource):
             return msg.jsonify()
         else:
             return Response(response=json.dumps(msg.jsonify()),status=msg.status,mimetype='application/json')
+
+class ChallengeDownloadAPI(Resource):
+    def get(self, chall_name):
+        dist_path = "dock_" + chall_name + "/dist.tar.gz"
+        return send_from_directory(os.environ["SUPPLIER"], dist_path, as_attachment=True)

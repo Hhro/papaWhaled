@@ -42,7 +42,10 @@ def check_chall_dir(path,chal_type):
         else:
             if not path.joinpath(props[prop]).exists():
                 return False
+    if not path.joinpath("dist.tar.gz").exists():
+        return False
 
+    path.joinpath("chall.zip").unlink()
     return True
 
 def set_chall_dir_perm(path):

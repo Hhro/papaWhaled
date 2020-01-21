@@ -9,7 +9,7 @@ from .fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_di
 from .tester import do_chall_test
 from common.comm import Message
 
-SUPPLIER_PATH = os.environ["SUPPLIER"]
+SUPPLIER_PATH = os.environ['SUPPLIER']
 SUCCESS = 200
 INVALID = 400
 NOT_EXIST = 404
