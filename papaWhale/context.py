@@ -1,0 +1,2 @@
+supplier = None
+backup = False

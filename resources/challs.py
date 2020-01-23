@@ -1,8 +1,10 @@
 import os
 import werkzeug
 import json
+from pathlib import Path
 from flask import jsonify, Response, send_from_directory
 from flask_restful import Resource, reqparse, abort
+from papaWhale import context
 from papaWhale.challs import list_challs
 from papaWhale.challs import restart_challs
 from papaWhale.challs import terminate_challs
@@ -99,5 +101,5 @@ class ChallengeTerminateAPI(Resource):
 
 class ChallengeDownloadAPI(Resource):
     def get(self, chall_name):
-        dist_path = "dock_" + chall_name + "/dist.tar.gz"
-        return send_from_directory(os.environ["SUPPLIER"], dist_path, as_attachment=True)
+        dist_path = Path("dock_{}".format(chall_name)).joinpath("dist.tar.gz")
+        return send_from_directory(context.supplier, str(dist_path), as_attachment=True)

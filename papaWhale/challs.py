@@ -4,12 +4,13 @@ import shutil
 import docker
 from pathlib import Path
 from flask import jsonify
-from .dockutils import get_chall_containers,get_port,gen_dockerfile,save_dockerfile
-from .fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_dir_perm
-from .tester import do_chall_test
+from papaWhale.context import supplier
+from papaWhale.rectify import handle_error
+from papaWhale.dockutils import get_chall_containers,get_port,gen_dockerfile,save_dockerfile
+from papaWhale.fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_dir_perm
+from papaWhale.tester import do_chall_test
 from common.comm import Message
 
-SUPPLIER_PATH = os.environ['SUPPLIER']
 SUCCESS = 200
 INVALID = 400
 NOT_EXIST = 404
@@ -34,7 +35,7 @@ def list_challs():
     return jsonify(challs)
 
 def run_auto_chall(name,port,arch,ver,chal_file,flag):
-    chal_dir_path = Path(SUPPLIER_PATH).joinpath("dock_"+name)
+    chal_dir_path = supplier.joinpath("dock_"+name)
 
     if is_dir_exist(chal_dir_path):
         return Message(COLLISION, "{} is already registred. Please use another name.".format(name))
@@ -46,18 +47,21 @@ def run_auto_chall(name,port,arch,ver,chal_file,flag):
     gen_dockerfile(chal_dir_path,name,port,arch,ver)
     set_chall_dir_perm(chal_dir_path)
 
-    if subprocess.call(str(chal_dir_path.joinpath("build.sh")),cwd=str(chal_dir_path)):
+    if subprocess.call(str(chal_dir_path.joinpath("build.sh")), cwd=str(chal_dir_path)):
+        handle_error(name)
         return Message(BUILD_FAIL, "Build dockerfile is failed.")
-    if subprocess.call(str(chal_dir_path.joinpath("run.sh")),cwd=str(chal_dir_path)):
+    if subprocess.call(str(chal_dir_path.joinpath("run.sh")), cwd=str(chal_dir_path)):
+        handle_error(name)
         return Message(RUN_FAIL, "Run container is failed.")
     
     if do_chall_test(chal_dir_path,port,flag):
         return Message(SUCCESS, "Challenge '{}' is now running on {}".format(name,port),port)
     else:
+        handle_error(name)
         return Message(TEST_FAIL, "Run challenge is failed. Something wrong on your chall files or test file")
 
 def run_cdock_chall(name,port,chal_file,dockerfile,flag):
-    chal_dir_path = Path(SUPPLIER_PATH).joinpath("dock_"+name)
+    chal_dir_path = supplier.joinpath("dock_"+name)
 
     if is_dir_exist(chal_dir_path):
         return Message(COLLISION, "{} is already registred. Please use another name.".format(name))
@@ -69,14 +73,17 @@ def run_cdock_chall(name,port,chal_file,dockerfile,flag):
     save_dockerfile(name,port,chal_dir_path,dockerfile)
     set_chall_dir_perm(chal_dir_path)
 
-    if subprocess.call(str(chal_dir_path.joinpath("build.sh")),cwd=str(chal_dir_path)):
+    if subprocess.call(str(chal_dir_path.joinpath("build.sh")), cwd=str(chal_dir_path)):
+        handle_error(name)
         return Message(BUILD_FAIL, "Build dockerfile is failed.")
     if subprocess.call(str(chal_dir_path.joinpath("run.sh")),cwd=str(chal_dir_path)):
+        handle_error(name)
         return Message(RUN_FAIL, "Run container is failed.")
     
     if do_chall_test(chal_dir_path,port,flag):
         return Message(SUCCESS, "Challenge '{}' is now running on {}".format(name,port),port)
     else:
+        handle_error(name)
         return Message(TEST_FAIL, "Run challenge is failed. Something wrong on your chall files or test file")
 
 #TODO
@@ -92,13 +99,13 @@ def restart_challs(name):
     Returns:
         msg (str): Success/error log.
     """
-    chall_path = Path(SUPPLIER_PATH+"dock_{}".format(name))
+    chall_path = supplier.joinpath("dock_{}".format(name))
 
     challs = get_chall_containers()
     names = [chall.name[7:] for chall in challs]  # discard 'cappit_' prefix
 
     if name in names:
-        if not subprocess.call(str(chall_path.joinpath("run.sh")), shell=True):
+        if not subprocess.call(str(chall_path.joinpath("run.sh"))):
             return Message(SUCCESS,"Restart {} succeed.".format(name))
         else:
             return Message(SERVER_ERROR,"Restart {} failed. You need to report server manager.".format(name))
@@ -114,13 +121,13 @@ def terminate_challs(name):
     Returns:
         msg (str): Success/error log.
     """
-    chall_path = Path(SUPPLIER_PATH+"dock_{}".format(name))
+    chall_path = supplier.joinpath("dock_{}".format(name))
 
     challs = get_chall_containers()
     names = [chall.name[7:] for chall in challs]  # discard 'cappit_' prefix
 
     if name in names:
-        if not subprocess.call(str(chall_path.joinpath("term.sh")), shell=True):
+        if not subprocess.call(str(chall_path.joinpath("term.sh"))):
             shutil.rmtree(str(chall_path))
             return Message(SUCCESS,"Terminate {} succeed.".format(name))
         else:

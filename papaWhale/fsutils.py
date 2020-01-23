@@ -4,6 +4,8 @@ import zipfile
 import json
 
 is_dir_exist = lambda p : p.exists() and p.is_dir()
+backup = lambda p : p.replace(str(p)+".bak")
+cleanup = lambda p : shutil.rmtree(str(p))
 
 def init_chall_dir(path,chal_file,flag):
     path.mkdir()
@@ -61,4 +63,3 @@ def set_chall_dir_perm(path):
     for elem in elems:
         tar_path = path.joinpath(elem)
         tar_path.chmod(0o755)
-    
