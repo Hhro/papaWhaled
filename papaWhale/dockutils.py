@@ -44,108 +44,76 @@ def find_avail_port():
 
     return str(port)
 
-def gen_dockerfile(path,name,port,arch,ver):
-    props = {}
-    dockerfile=''
-    run_sh=''
-    build_sh=''
-    term_sh=''
+def gen_docker_manage_scripts(path, props):
+    name = props["name"]
+    port = props["port"]
+    build_opts = props["build_opts"]
+    run_opts = props["run_opts"]
+    prefix = "cappit"
 
-    with open(str(path.joinpath("props.json"))) as props_json:
-        props = json.load(props_json)
-        chall_bin = props["bin"]
+    build_sh = (
+        "#!/bin/bash\n"
+        "docker rmi {name}\n"
+        "docker build . -t {name} "
+    ).format(name=name)
+    build_sh += " ".join(build_opts)
+
+    run_sh = (
+        "#!/bin/bash\n"
+        "docker kill {prefix}_{name} 2>/dev/null\n"
+        "docker rm {prefix}_{name} 2>/dev/null\n"
+        "docker run --privileged -p {port}:31000 -dit --name {prefix}_{name} {name} "
+    ).format(name=name,port=port,prefix=prefix)
+    run_sh += " ".join(run_opts)
+
+    term_sh = (
+        "#!/bin/bash\n"
+        "docker kill {prefix}_{name} 2>/dev/null\n"
+        "docker rm {prefix}_{name} 2>/dev/null\n"
+        "docker rmi {name} 2>/dev/null"
+    ).format(name=name)
+
+    with open(str(path.joinpath("build.sh")),"w") as f_buildsh:
+        f_buildsh.write(build_sh)
+        f_buildsh.close()
+    
+    with open(str(path.joinpath("run.sh")),"w") as f_runsh:
+        f_runsh.write(run_sh)
+        f_runsh.close()
+    
+    with open(str(path.joinpath("term.sh")),"w") as f_termsh:
+        f_termsh.write(term_sh)
+        f_termsh.close()
+
+def gen_dockerfile(path, props):
+    name = props["name"]
+    arch = props["arch"]
+    os = props["ver"]
+    bin_name = "bin" if "bin" not in props.keys() else props["bin"]
+    user = "user" if "user" not in props.keys() else props["user"]
+    dock_opts = None if "dock_opts" not in props.keys() else props["dock_opts"]
+
+    dockerfile=''
 
     dockerfile = (
-        "FROM nsjail:{}\n"
-        "RUN useradd -m -d /home/user -s /bin/bash -u 1000 user\n"
-        ).format(ver)
-    if arch=="x86":
-        dockerfile += (
-            "RUN apt-get update\n"
-            "RUN apt-get install libc6-i386\n"
-        )
+        "FROM nsjail:{os}\n"
+        "RUN useradd -m -d /home/{user} -s /bin/{user} -u 1000 {user}\n"
+    ).format(os=os, user=user)
+
+    if (dock_opts != None) or (arch != "x64"):
+        dockerfile += "RUN apt-get update\n"
+        if arch == "x86":
+            dockerfile += "RUN apt-get install libc6-i386\n"
+        dockerfile += "\n".join(dock_opts)
+    dockerfile += "\n"
+
     dockerfile += (
-    "COPY {} /home/user/{}\n"
-    "COPY flag /home/user/flag\n"
-    "CMD su user -c 'nsjail -Ml --port 31000 --chroot / --user 1000 --group 1000 /home/user/{}'\n"
-    "EXPOSE 31000"
-    ).format(chall_bin,chall_bin,chall_bin)
-
-    build_sh = (
-    "#!/bin/bash\n"
-    "docker rmi {}\n"
-    "docker build . -t {}"
-    ).format(name,name)
-
-    run_sh = (
-    "#!/bin/bash\n"
-    "docker kill cappit_{} 2>/dev/null\n"
-    "docker rm cappit_{} 2>/dev/null\n"
-    "docker run --privileged -p {}:31000 -dit --name cappit_{} {}"
-    ).format(name,name,port,name,name)
-
-    term_sh = (
-    "#!/bin/bash\n"
-    "docker kill cappit_{} 2>/dev/null\n"
-    "docker rm cappit_{} 2>/dev/null\n"
-    "docker rmi {} 2>/dev/null"
-    ).format(name,name,name)
+        "COPY {bin_name} /home/{user}/{name}\n"
+        "COPY flag /home/{user}/flag\n"
+        "CMD su {user} -c 'nsjail -Ml --port 31000 --chroot / --user 1000 --group 1000 /home/{user}/{name}'\n"
+        "EXPOSE 31000"
+    ).format(bin_name=bin_name, user=user, name=name)
 
     with open(str(path.joinpath("Dockerfile")),"w") as f_dfile:
         f_dfile.write(dockerfile)
         f_dfile.close()
-
-    with open(str(path.joinpath("build.sh")),"w") as f_buildsh:
-        f_buildsh.write(build_sh)
-        f_buildsh.close()
-    
-    with open(str(path.joinpath("run.sh")),"w") as f_runsh:
-        f_runsh.write(run_sh)
-        f_runsh.close()
-    
-    with open(str(path.joinpath("term.sh")),"w") as f_termsh:
-        f_termsh.write(term_sh)
-        f_termsh.close()
-    
-def save_dockerfile(name,port,path,dockerfile):
-    with open(str(path.joinpath("props.json")),"r") as props:
-        bin = json.load(props)["bin"]
-
-    dockerfile = dockerfile.stream.read()
-    dockerfile = dockerfile.decode().format(bin=bin)
-
-    build_sh = (
-    "#!/bin/bash\n"
-    "docker rmi {name}\n"
-    "docker build . -t {name}"
-    ).format(name=name)
-
-    run_sh = (
-    "#!/bin/bash\n"
-    "docker kill cappit_{name} 2>/dev/null\n"
-    "docker rm cappit_{name} 2>/dev/null\n"
-    "docker run --privileged -p {port}:31000 -dit --name cappit_{name} {name}"
-    ).format(name=name,port=port)
-
-    term_sh = (
-    "#!/bin/bash\n"
-    "docker kill cappit_{name} 2>/dev/null\n"
-    "docker rm cappit_{name} 2>/dev/null\n"
-    "docker rmi {name} 2>/dev/null"
-    ).format(name=name)
-
-    with open(str(path.joinpath("Dockerfile")),"w") as f_dfile:
-        f_dfile.write(dockerfile)
-        f_dfile.close()
-
-    with open(str(path.joinpath("build.sh")),"w") as f_buildsh:
-        f_buildsh.write(build_sh)
-        f_buildsh.close()
-    
-    with open(str(path.joinpath("run.sh")),"w") as f_runsh:
-        f_runsh.write(run_sh)
-        f_runsh.close()
-    
-    with open(str(path.joinpath("term.sh")),"w") as f_termsh:
-        f_termsh.write(term_sh)
-        f_termsh.close()

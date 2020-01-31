@@ -4,9 +4,10 @@ import shutil
 import docker
 from pathlib import Path
 from flask import jsonify
+from papaWhale.props import save_props, prepare_props_from_args, check_props, load_props
 from papaWhale.context import supplier
 from papaWhale.rectify import handle_error
-from papaWhale.dockutils import get_chall_containers,get_port,gen_dockerfile,save_dockerfile
+from papaWhale.dockutils import get_chall_containers, get_port,gen_dockerfile, gen_docker_manage_scripts
 from papaWhale.fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_dir_perm
 from papaWhale.tester import do_chall_test
 from common.comm import Message
@@ -18,6 +19,7 @@ COLLISION = 409
 TEST_FAIL = 520
 BUILD_FAIL = 521
 RUN_FAIL = 522
+INIT_FAIL = 523
 SERVER_ERROR = 500
 
 def list_challs():
@@ -34,60 +36,72 @@ def list_challs():
 
     return jsonify(challs)
 
-def run_auto_chall(name,port,arch,ver,chal_file,flag):
-    chal_dir_path = supplier.joinpath("dock_"+name)
+def prepare_chall(chall_path, props):
+    chall_type = props["chal_type"]
 
-    if is_dir_exist(chal_dir_path):
+    if chall_type == "auto" or chall_type == "cdock":
+        gen_dockerfile(chall_path, props)
+        gen_docker_manage_scripts(chall_path, props)
+    else:   #Full custom
+        pass
+
+def run_chall(args):
+    chall_file = args["file"]
+    chall_type = args["chal-type"]
+    flag = args["flag"]
+    name = args["name"]
+    props = args["props"]
+
+    if chall_type == "custom":
+        chall_dir_path = supplier.joinpath("custom_"+name)
+    else:
+        chall_dir_path = supplier.joinpath("dock_"+name)
+    
+    if is_dir_exist(chall_dir_path):
         return Message(COLLISION, "{} is already registred. Please use another name.".format(name))
-
-    init_chall_dir(chal_dir_path,chal_file,flag)
-    if not check_chall_dir(chal_dir_path,"auto"):
-        return Message(INVALID, "Request is invalid. Check your chall.zip again please.")
     
-    gen_dockerfile(chal_dir_path,name,port,arch,ver)
-    set_chall_dir_perm(chal_dir_path)
-
-    if subprocess.call(str(chal_dir_path.joinpath("build.sh")), cwd=str(chal_dir_path)):
-        handle_error(name)
-        return Message(BUILD_FAIL, "Build dockerfile is failed.")
-    if subprocess.call(str(chal_dir_path.joinpath("run.sh")), cwd=str(chal_dir_path)):
-        handle_error(name)
-        return Message(RUN_FAIL, "Run container is failed.")
+    init_chall_dir(chall_dir_path, chall_file, flag)
+    if not check_chall_dir(chall_dir_path, props):
+        return Message(INVALID, "'chall.zip' is invalid. Read the docs.")
     
-    if do_chall_test(chal_dir_path,port,flag):
+    if props != None:
+        if check_props(props):
+            save_props(chall_dir_path, props)
+        else:
+            return Message(INVALID, "Your props.json is malformed. Read the docs.")
+    else:
+        prepare_props_from_args(chall_dir_path, args)
+    
+    props = load_props(chall_dir_path)
+    prepare_chall(chall_dir_path, props)
+    set_chall_dir_perm(chall_dir_path, props)
+
+    if chall_type == "auto" or chall_type == "custom_dock":
+        err = run_docker_chall(chall_dir_path, props)
+        if err == BUILD_FAIL:
+            handle_error(name)
+            return Message(BUILD_FAIL, "Failed to build docker image.")
+        elif err == RUN_FAIL:
+            handle_error(name)
+            return Message(RUN_FAIL, "Failed to run challenge.")
+    elif chall_type == "custom":
+        pass
+    else:
+        return Message(INVALID, "Request is invalid.")
+
+    if do_chall_test(chall_dir_path, props):
         return Message(SUCCESS, "Challenge '{}' is now running on {}".format(name,port),port)
     else:
         handle_error(name)
         return Message(TEST_FAIL, "Run challenge is failed. Something wrong on your chall files or test file")
 
-def run_cdock_chall(name,port,chal_file,dockerfile,flag):
-    chal_dir_path = supplier.joinpath("dock_"+name)
-
-    if is_dir_exist(chal_dir_path):
-        return Message(COLLISION, "{} is already registred. Please use another name.".format(name))
-
-    init_chall_dir(chal_dir_path,chal_file,flag)
-    if not check_chall_dir(chal_dir_path,"cdock"):
-        return Message(INVALID, "Request is invalid. Check your chall.zip again please.")
+def run_docker_chall(chall_dir_path, props):
+    if subprocess.call(str(chall_dir_path.joinpath("build.sh")), cwd=str(chal_dir_path)):
+        return BUILD_FAIL
+    if subprocess.call(str(chall_dir_path.joinpath("run.sh")), cwd=str(chal_dir_path)):
+        return RUN_FAIL
     
-    save_dockerfile(name,port,chal_dir_path,dockerfile)
-    set_chall_dir_perm(chal_dir_path)
-
-    if subprocess.call(str(chal_dir_path.joinpath("build.sh")), cwd=str(chal_dir_path)):
-        handle_error(name)
-        return Message(BUILD_FAIL, "Build dockerfile is failed.")
-    if subprocess.call(str(chal_dir_path.joinpath("run.sh")),cwd=str(chal_dir_path)):
-        handle_error(name)
-        return Message(RUN_FAIL, "Run container is failed.")
-    
-    if do_chall_test(chal_dir_path,port,flag):
-        return Message(SUCCESS, "Challenge '{}' is now running on {}".format(name,port),port)
-    else:
-        handle_error(name)
-        return Message(TEST_FAIL, "Run challenge is failed. Something wrong on your chall files or test file")
-
-#TODO
-def run_custom_chall(name,port,run_sh,stop_sh,chal_file):
+def run_custom_chall(chall_dir_path, props):
     pass
 
 def restart_challs(name):

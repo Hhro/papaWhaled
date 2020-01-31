@@ -5,17 +5,13 @@ from pathlib import Path
 from flask import jsonify, Response, send_from_directory
 from flask_restful import Resource, reqparse, abort
 from papaWhale import context
-from papaWhale.challs import list_challs
+from papaWhale.props import prepare_props_from_args, process_props, save_props
+from papaWhale.challs import list_challs, run_chall
 from papaWhale.challs import restart_challs
 from papaWhale.challs import terminate_challs
-from papaWhale.challs import run_auto_chall, run_cdock_chall, run_custom_chall
-from papaWhale.dockutils import find_avail_port, check_port_avail
 from common.comm import Message
 
-SUCCESS=200
-NOT_EXIST=404
-COLLISION=409
-SERVER_ERROR=500
+SUCCESS = 200
 
 class ChallengeListAPI(Resource):
     def get(self):
@@ -23,8 +19,8 @@ class ChallengeListAPI(Resource):
 
 class ChallengeUploadAPI(Resource):
     def post(self):
-        msg = Message("500","Something Wrong...")
         parser = reqparse.RequestParser()
+        parser.add_argument("props",type=werkzeug.datastructures.FileStorage, location='files', default=None)
         parser.add_argument("name",required=True,type=str)
         parser.add_argument("arch",type=str)
         parser.add_argument("chal-type",required=True,type=str)
@@ -37,48 +33,16 @@ class ChallengeUploadAPI(Resource):
         parser.add_argument("flag",required=True,type=str)
 
         args = parser.parse_args()
-        name = args["name"]
-        port = args["port"]
-        flag = args["flag"]
-        chal_type = args["chal-type"]
+        resp = run_chall(args)
 
-        if port == "auto":
-            port = find_avail_port()
-        else:
-            if not check_port_avail(port):
-                msg = Message(COLLISION,"port {} is already used.".format(port))
-                return Response(response=json.dumps(msg.jsonify()),status=msg.status,mimetype='application/json')
-        
-        if chal_type == "auto":
-            arch = args["arch"]
-            ver = args["ver"]
-        elif chal_type == "custom_dock":
-            dockerfile = args["dockerfile"]
-        elif chal_type == "full_custom":
-            run_sh = args["run-sh"]
-            stop_sh = args["stop-sh"]
-
-        chal_file = args["file"]
-
-        if chal_type == "auto":
-            msg = run_auto_chall(name,port,arch,ver,chal_file,flag)
-        elif chal_type == "custom_dock":
-            msg = run_cdock_chall(name,port,chal_file,dockerfile,flag)
-        #TODO
-        elif chal_type == "full_custom":
-            status = run_custom_chall(name,port,run_sh,stop_sh,chal_file)
-        
-        if msg.status == SUCCESS:
-            return msg.jsonify()
-        else:
-            return Response(response=json.dumps(msg.jsonify()),status=msg.status,mimetype='application/json')
+        return resp
         
 class ChallengeRestartAPI(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument("name", type=str)
-        args = parser.parse_args()
-        name = args["name"]
+        props = parser.parse_args()
+        name = props["name"]
         msg = restart_challs(name)
 
         if msg.status==SUCCESS:
@@ -90,8 +54,8 @@ class ChallengeTerminateAPI(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument("name", type=str)
-        args = parser.parse_args()
-        name = args["name"]
+        props = parser.parse_args()
+        name = props["name"]
         msg = terminate_challs(name)
 
         if msg.status==SUCCESS:
