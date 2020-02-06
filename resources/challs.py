@@ -5,7 +5,6 @@ from pathlib import Path
 from flask import jsonify, Response, send_from_directory
 from flask_restful import Resource, reqparse, abort
 from papaWhale import context
-from papaWhale.props import prepare_props_from_args, save_props
 from papaWhale.challs import list_challs, run_chall
 from papaWhale.challs import restart_challs
 from papaWhale.challs import terminate_challs
@@ -21,16 +20,16 @@ class ChallengeUploadAPI(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument("props",type=werkzeug.datastructures.FileStorage, location='files', default=None)
-        parser.add_argument("name",required=True,type=str)
-        parser.add_argument("arch",type=str)
-        parser.add_argument("chal-type",required=True,type=str)
-        parser.add_argument("ver",type=str)
-        parser.add_argument("port",type=str)
-        parser.add_argument("dockerfile",type=werkzeug.datastructures.FileStorage, location='files')
+        parser.add_argument("name",type=str,default=None)
+        parser.add_argument("arch",type=str,default=None)
+        parser.add_argument("chal-type",type=str,default=None)
+        parser.add_argument("ver",type=str,default=None)
+        parser.add_argument("port",type=str,default=None)
+        parser.add_argument("dockerfile",type=werkzeug.datastructures.FileStorage, location='files')    ## would be removed
         parser.add_argument("run-sh",type=str)
         parser.add_argument("stop-sh",type=str)
         parser.add_argument("file",required=True,type=werkzeug.datastructures.FileStorage, location='files')
-        parser.add_argument("flag",required=True,type=str)
+        parser.add_argument("flag",type=str,default=None)
 
         args = parser.parse_args()
         resp = run_chall(args)
@@ -69,4 +68,10 @@ class ChallengeTerminateAPI(Resource):
 class ChallengeDownloadAPI(Resource):
     def get(self, chall_name):
         dist_path = Path("dock_{}".format(chall_name)).joinpath("dist.tar.gz")
-        return send_from_directory(context.supplier, str(dist_path), as_attachment=True)
+        
+        return send_from_directory(
+            context.supplier, 
+            str(dist_path), 
+            as_attachment=True, 
+            attachment_filename="dist.tar.gz"
+        )

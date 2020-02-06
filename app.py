@@ -39,6 +39,7 @@ parser.add_argument("--prefix",
 args = parser.parse_args()
 
 context.supplier = Path(args.supplier).absolute()
+context.repo = Path.cwd().joinpath("libs")
 context.tmpl_dir = Path.cwd().joinpath("tmpl")
 context.backup = args.backup
 context.prefix = args.prefix
@@ -48,12 +49,14 @@ from resources.challs import ChallengeUploadAPI
 from resources.challs import ChallengeRestartAPI
 from resources.challs import ChallengeTerminateAPI
 from resources.challs import ChallengeDownloadAPI
+from resources.libraries import LibraryDownloadAPI
 
 api.add_resource(ChallengeListAPI,'/challs',endpoint="challenges")
 api.add_resource(ChallengeUploadAPI,'/challs/upload',endpoint="challenge_upload")
 api.add_resource(ChallengeRestartAPI,'/challs/restart',endpoint="challenge_restart")
 api.add_resource(ChallengeTerminateAPI,'/challs/term',endpoint="challenge_terminate")
 api.add_resource(ChallengeDownloadAPI,'/challs/download/<string:chall_name>',endpoint="challenge_download")
+api.add_resource(LibraryDownloadAPI,'/libs/download/<string:hint>',endpoint="library_download")
 
 if args.ssl:
     ctx = (args.crt,args.pem)

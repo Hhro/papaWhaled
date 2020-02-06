@@ -1,4 +1,9 @@
 {
+	"name": "",
+	"arch": "",
+	"ver": "",
+	"chal-type": "",
+	"flag": "",
 	"bin":"bin",
 	"user":"user",
 	"test":"test.py",
@@ -8,6 +13,5 @@
 	"perms":{
 		"755":["bin","test","build","run","term"]
 		},
-	"dist":["bin"],
-	"libs":["libc"]
+	"dist":["bin"]
 }

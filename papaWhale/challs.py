@@ -1,13 +1,15 @@
 import os
-import subprocess
-import shutil
+import json
 import docker
+import shutil
+import subprocess
 from pathlib import Path
 from flask import jsonify
-from papaWhale.props import save_props, prepare_props_from_args, check_props, load_props
+from papaWhale.bookkeeper import caching_libs
+from papaWhale.props import save_props, prepare_props, check_props, load_props
 from papaWhale.context import supplier
 from papaWhale.rectify import handle_error
-from papaWhale.dockutils import get_chall_containers, get_port,gen_dockerfile, gen_docker_manage_scripts, find_avail_port
+from papaWhale.dockutils import get_chall_containers, check_port_avail,gen_dockerfile, gen_docker_manage_scripts, find_avail_port
 from papaWhale.fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_dir_perm, make_dist
 from papaWhale.tester import do_chall_test
 from common.comm import Message
@@ -46,15 +48,25 @@ def prepare_chall(chall_path, props):
         pass
 
 def run_chall(args):
+    props_json = None
+    if args["props"] != None:
+        props_json = json.load(args["props"].stream)
+        chall_type = props_json["chal-type"]
+        flag = props_json["flag"]
+        name = props_json["name"]
+        port = props_json["port"]
+    else:
+        chall_type = args["chal-type"]
+        flag = args["flag"] 
+        name = args["name"] 
+        port = args["port"]
+
     chall_file = args["file"]
-    chall_type = args["chal-type"]
-    flag = args["flag"]
-    name = args["name"]
-    port = args["port"]
-    props = args["props"]
 
     if port == "auto":
         port = find_avail_port()
+    elif not check_port_avail(port):
+        return Message(COLLISION, "Port number {} is already used. Please use another port.".format(port))
 
     if chall_type == "custom":
         chall_dir_path = supplier.joinpath("custom_"+name)
@@ -66,23 +78,25 @@ def run_chall(args):
     
     init_chall_dir(chall_dir_path, chall_file, flag)
 
-    if props != None:
-        if check_props(props):
-            save_props(chall_dir_path, props, port)
-        else:
-            handle_error(name)
-            return Message(INVALID, "Your props.json is malformed. Read the docs.")
+    if props_json != None:
+        prepare_props(chall_dir_path, props_json, port)
     else:
-        prepare_props_from_args(chall_dir_path, args, port)
+        prepare_props(chall_dir_path, args, port)
+    
+    if check_props(chall_dir_path) != True:
+        return Message(INVALID, "'props.json' is malformed. Run with '--backup' and check 'props.json'")
     
     props = load_props(chall_dir_path)
     make_dist(chall_dir_path, props)
 
     if not check_chall_dir(chall_dir_path, props):
         return Message(INVALID, "'chall.zip' is invalid. Read the docs.")
+    else:
+        chall_dir_path.joinpath("chall.zip").unlink()
     
     prepare_chall(chall_dir_path, props)
     set_chall_dir_perm(chall_dir_path, props)
+
 
     if chall_type == "auto" or chall_type == "custom_dock":
         err = run_docker_chall(chall_dir_path, props)
@@ -99,7 +113,16 @@ def run_chall(args):
         return Message(INVALID, "Request is invalid.")
 
     if do_chall_test(chall_dir_path, props):
-        return Message(SUCCESS, "Challenge '{name}' is now running on {port}".format(name=name,port=port))
+        if "libs" in props.keys():
+            lib_hashes = caching_libs(chall_dir_path, props)
+            return Message(
+                SUCCESS, 
+                "Challenge '{name}' is now running on {port}".format(name=name,port=port),
+                port,
+                lib_hashes
+            )
+        else:
+            return Message(SUCCESS, "Challenge '{name}' is now running on {port}".format(name=name,port=port),port)
     else:
         handle_error(name)
         return Message(TEST_FAIL, "Run challenge is failed. Something wrong on your chall files or test file")

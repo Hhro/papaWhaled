@@ -10,8 +10,8 @@ NOT_EXIST = 404
 COLLISION = 409
 SERVER_ERROR = 500
 
-avail_prop = ["name","arch","ver","chal-type","flag","test","bin","build_opts","run_opts","dock_opts","dist","libs"]
-required_prop = ["name","arch","ver","chal-type","flag","test","bin","dist"]
+avail_props = ["name","arch","ver","chal-type","flag","test","bin","build_opts","run_opts","dock_opts","dist","libs"]
+required_props = ["name","arch","ver","chal-type","flag","test","bin","dist"]
 
 def load_props(chall_dir):
     props_path = chall_dir.joinpath("props.json")
@@ -36,10 +36,10 @@ def save_props(chall_dir, props, port, replace=True):
     else:
         json.dump(props, open(str(props_path),"w"))
 
-def prepare_props_from_args(chall_dir,args,port):
-    props = load_props_template("default")
+def prepare_props(chall_dir,args,port,tmpl="default"):
+    props = load_props_template(tmpl)
 
-    for prop in avail_prop:
+    for prop in avail_props:
         if prop in args.keys():
             props.update({prop:args[prop]})
 
@@ -50,8 +50,8 @@ def check_props(chall_dir, props=None):
     if props == None:
         props = load_props(chall_dir)
     
-    for key in required_prop:
-        if key not in props.keys():
+    for key in required_props:
+        if key not in props.keys() or props[key] == '':
             return False
 
     return True

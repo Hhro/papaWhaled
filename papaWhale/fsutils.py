@@ -30,34 +30,34 @@ def make_dist(chall_dir, props):
     )
     
     for distee in props["dist"]:
-        dist.add(chall_dir.joinpath(props[distee]))
+        if type(props[distee]) == list:
+            for elem in props[distee]:
+                dist.add(chall_dir.joinpath(elem))
+        else:
+            dist.add(chall_dir.joinpath(props[distee]))
     dist.close()
     
 def check_chall_dir(chall_dir, props):
-    req_props = []
     props = load_props(chall_dir)
     chall_type = props["chal-type"]
 
     if not chall_dir.joinpath("props.json").exists():
         return False
     
-    if chall_type == "auto":
-        req_props = ["bin","test"]
-    elif chall_type == "cdock":
-        req_props = ["bin","test"]
+    if chall_type == "auto" or "cdock":
+        required = ["flag", props["bin"], props["test"]]
     elif chall_type == "custom":
-        req_props = ["init.sh","run.sh"]
+        pass
     
-    for prop in req_props:
-        if prop not in props.keys() or props[prop] == '':
+    for check in required:
+        if not chall_dir.joinpath(check).exists():
             return False
-        else:
-            if not chall_dir.joinpath(props[prop]).exists():
+    
+    if "libs" in props.keys():
+        for lib in props["libs"]:
+            if not chall_dir.joinpath(lib).exists():
                 return False
-    if not chall_dir.joinpath("dist.tar.gz").exists():
-        return False
 
-    chall_dir.joinpath("chall.zip").unlink()
     return True
 
 def set_chall_dir_perm(chall_path, props):
