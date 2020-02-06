@@ -3,7 +3,7 @@ import subprocess
 
 def do_chall_test(chall_dir_path, props):
     test_worker = props["test"]
-    port = props["test"]
+    port = props["port"]
     flag = props["flag"]
 
     if not subprocess.call(

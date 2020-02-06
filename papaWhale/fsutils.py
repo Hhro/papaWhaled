@@ -1,5 +1,6 @@
 import shutil
 import pathlib
+import tarfile
 import zipfile
 import json
 from papaWhale.props import load_props
@@ -21,40 +22,49 @@ def init_chall_dir(path,chall_file,flag):
     with open(flag_path,'w') as flag_out:
         flag_out.write(flag)
         flag_out.close()
+
+def make_dist(chall_dir, props):
+    dist = tarfile.open(
+        str(chall_dir.joinpath("dist.tar.gz")),
+        "w:gz"
+    )
+    
+    for distee in props["dist"]:
+        dist.add(chall_dir.joinpath(props[distee]))
+    dist.close()
     
 def check_chall_dir(chall_dir, props):
     req_props = []
-    props = load_props()
+    props = load_props(chall_dir)
+    chall_type = props["chal-type"]
 
-    if not path.joinpath("props.json").exists():
+    if not chall_dir.joinpath("props.json").exists():
         return False
-    else:
-        with open(str(path.joinpath("props.json"))) as prop_json:
-            props = json.load(prop_json)
     
-    if chal_type == "auto":
+    if chall_type == "auto":
         req_props = ["bin","test"]
-    elif chal_type == "cdock":
+    elif chall_type == "cdock":
         req_props = ["bin","test"]
-    elif chal_type == "custom":
+    elif chall_type == "custom":
         req_props = ["init.sh","run.sh"]
     
     for prop in req_props:
         if prop not in props.keys() or props[prop] == '':
             return False
         else:
-            if not path.joinpath(props[prop]).exists():
+            if not chall_dir.joinpath(props[prop]).exists():
                 return False
-    if not path.joinpath("dist.tar.gz").exists():
+    if not chall_dir.joinpath("dist.tar.gz").exists():
         return False
 
-    path.joinpath("chall.zip").unlink()
+    chall_dir.joinpath("chall.zip").unlink()
     return True
 
 def set_chall_dir_perm(chall_path, props):
-    elems = ["bin","test","run.sh","build.sh","term.sh"]
+    perms = props["perms"]
 
-    #Set executable
-    for elem in elems:
-        tar_path = chall_path.joinpath(elem)
-        tar_path.chmod(0o755)
+    #Set file permission
+    for perm in list(perms.keys()):
+        for setee in perms[perm]:
+            setee_path = chall_path.joinpath(props[setee])
+            setee_path.chmod(int(perm,8))

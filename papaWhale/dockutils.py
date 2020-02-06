@@ -1,6 +1,7 @@
 import docker
 import json
 import base64
+from papaWhale import context
 
 get_port = lambda c : c.ports['31000/tcp'][0]['HostPort']
 check_port_avail = lambda p : p not in get_used_ports()
@@ -47,9 +48,9 @@ def find_avail_port():
 def gen_docker_manage_scripts(path, props):
     name = props["name"]
     port = props["port"]
-    build_opts = props["build_opts"]
-    run_opts = props["run_opts"]
-    prefix = "cappit"
+    build_opts = [] if "build_opts" not in props.keys() else props["build_opts"]
+    run_opts = [] if "run_opts" not in props.keys() else props["run_opts"]
+    prefix = context.prefix
 
     build_sh = (
         "#!/bin/bash\n"
@@ -71,7 +72,7 @@ def gen_docker_manage_scripts(path, props):
         "docker kill {prefix}_{name} 2>/dev/null\n"
         "docker rm {prefix}_{name} 2>/dev/null\n"
         "docker rmi {name} 2>/dev/null"
-    ).format(name=name)
+    ).format(prefix=prefix,name=name)
 
     with open(str(path.joinpath("build.sh")),"w") as f_buildsh:
         f_buildsh.write(build_sh)
@@ -89,7 +90,7 @@ def gen_dockerfile(path, props):
     name = props["name"]
     arch = props["arch"]
     os = props["ver"]
-    bin_name = "bin" if "bin" not in props.keys() else props["bin"]
+    bin_name = props["bin"]
     user = "user" if "user" not in props.keys() else props["user"]
     dock_opts = None if "dock_opts" not in props.keys() else props["dock_opts"]
 
@@ -97,7 +98,7 @@ def gen_dockerfile(path, props):
 
     dockerfile = (
         "FROM nsjail:{os}\n"
-        "RUN useradd -m -d /home/{user} -s /bin/{user} -u 1000 {user}\n"
+        "RUN useradd -m -d /home/{user} -s /bin/bash -u 1000 {user}\n"
     ).format(os=os, user=user)
 
     if (dock_opts != None) or (arch != "x64"):

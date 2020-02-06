@@ -32,10 +32,16 @@ parser.add_argument("--backup",
                     help = "On error, back up the challenge directory as name.bak",
                     action = "store_true",
                     default = False)
+parser.add_argument("--prefix",
+                    help = "Prefix of name of live challenge container.",
+                    default = "papa")
+
 args = parser.parse_args()
 
 context.supplier = Path(args.supplier).absolute()
+context.tmpl_dir = Path.cwd().joinpath("tmpl")
 context.backup = args.backup
+context.prefix = args.prefix
 
 from resources.challs import ChallengeListAPI
 from resources.challs import ChallengeUploadAPI

@@ -7,8 +7,8 @@ from flask import jsonify
 from papaWhale.props import save_props, prepare_props_from_args, check_props, load_props
 from papaWhale.context import supplier
 from papaWhale.rectify import handle_error
-from papaWhale.dockutils import get_chall_containers, get_port,gen_dockerfile, gen_docker_manage_scripts
-from papaWhale.fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_dir_perm
+from papaWhale.dockutils import get_chall_containers, get_port,gen_dockerfile, gen_docker_manage_scripts, find_avail_port
+from papaWhale.fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_dir_perm, make_dist
 from papaWhale.tester import do_chall_test
 from common.comm import Message
 
@@ -37,7 +37,7 @@ def list_challs():
     return jsonify(challs)
 
 def prepare_chall(chall_path, props):
-    chall_type = props["chal_type"]
+    chall_type = props["chal-type"]
 
     if chall_type == "auto" or chall_type == "cdock":
         gen_dockerfile(chall_path, props)
@@ -50,7 +50,11 @@ def run_chall(args):
     chall_type = args["chal-type"]
     flag = args["flag"]
     name = args["name"]
+    port = args["port"]
     props = args["props"]
+
+    if port == "auto":
+        port = find_avail_port()
 
     if chall_type == "custom":
         chall_dir_path = supplier.joinpath("custom_"+name)
@@ -61,18 +65,22 @@ def run_chall(args):
         return Message(COLLISION, "{} is already registred. Please use another name.".format(name))
     
     init_chall_dir(chall_dir_path, chall_file, flag)
+
+    if props != None:
+        if check_props(props):
+            save_props(chall_dir_path, props, port)
+        else:
+            handle_error(name)
+            return Message(INVALID, "Your props.json is malformed. Read the docs.")
+    else:
+        prepare_props_from_args(chall_dir_path, args, port)
+    
+    props = load_props(chall_dir_path)
+    make_dist(chall_dir_path, props)
+
     if not check_chall_dir(chall_dir_path, props):
         return Message(INVALID, "'chall.zip' is invalid. Read the docs.")
     
-    if props != None:
-        if check_props(props):
-            save_props(chall_dir_path, props)
-        else:
-            return Message(INVALID, "Your props.json is malformed. Read the docs.")
-    else:
-        prepare_props_from_args(chall_dir_path, args)
-    
-    props = load_props(chall_dir_path)
     prepare_chall(chall_dir_path, props)
     set_chall_dir_perm(chall_dir_path, props)
 
@@ -87,18 +95,19 @@ def run_chall(args):
     elif chall_type == "custom":
         pass
     else:
+        handle_error(name)
         return Message(INVALID, "Request is invalid.")
 
     if do_chall_test(chall_dir_path, props):
-        return Message(SUCCESS, "Challenge '{}' is now running on {}".format(name,port),port)
+        return Message(SUCCESS, "Challenge '{name}' is now running on {port}".format(name=name,port=port))
     else:
         handle_error(name)
         return Message(TEST_FAIL, "Run challenge is failed. Something wrong on your chall files or test file")
 
 def run_docker_chall(chall_dir_path, props):
-    if subprocess.call(str(chall_dir_path.joinpath("build.sh")), cwd=str(chal_dir_path)):
+    if subprocess.call(str(chall_dir_path.joinpath("build.sh")), cwd=str(chall_dir_path)):
         return BUILD_FAIL
-    if subprocess.call(str(chall_dir_path.joinpath("run.sh")), cwd=str(chal_dir_path)):
+    if subprocess.call(str(chall_dir_path.joinpath("run.sh")), cwd=str(chall_dir_path)):
         return RUN_FAIL
     
 def run_custom_chall(chall_dir_path, props):

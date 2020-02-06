@@ -5,7 +5,7 @@ from pathlib import Path
 from flask import jsonify, Response, send_from_directory
 from flask_restful import Resource, reqparse, abort
 from papaWhale import context
-from papaWhale.props import prepare_props_from_args, process_props, save_props
+from papaWhale.props import prepare_props_from_args, save_props
 from papaWhale.challs import list_challs, run_chall
 from papaWhale.challs import restart_challs
 from papaWhale.challs import terminate_challs
@@ -35,7 +35,10 @@ class ChallengeUploadAPI(Resource):
         args = parser.parse_args()
         resp = run_chall(args)
 
-        return resp
+        if resp.status == SUCCESS:
+            return resp.jsonify()
+        else:
+            return Response(response = json.dumps(resp.jsonify()),status = resp.status,mimetype='application/json')
         
 class ChallengeRestartAPI(Resource):
     def post(self):

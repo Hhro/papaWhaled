@@ -1,0 +1,13 @@
+{
+	"bin":"bin",
+	"user":"user",
+	"test":"test.py",
+	"run":"run.sh",
+	"build":"build.sh",
+	"term":"term.sh",
+	"perms":{
+		"755":["bin","test","build","run","term"]
+		},
+	"dist":["bin"],
+	"libs":["libc"]
+}
