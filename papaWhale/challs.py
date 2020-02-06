@@ -9,7 +9,7 @@ from papaWhale.bookkeeper import caching_libs
 from papaWhale.props import save_props, prepare_props, check_props, load_props
 from papaWhale.context import supplier
 from papaWhale.rectify import handle_error
-from papaWhale.dockutils import get_chall_containers, check_port_avail,gen_dockerfile, gen_docker_manage_scripts, find_avail_port
+from papaWhale.dockutils import get_chall_containers, check_port_avail,gen_dockerfile, gen_docker_manage_scripts, find_avail_port, get_port
 from papaWhale.fsutils import is_dir_exist, init_chall_dir, check_chall_dir, set_chall_dir_perm, make_dist
 from papaWhale.tester import do_chall_test
 from common.comm import Message
