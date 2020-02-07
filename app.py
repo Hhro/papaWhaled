@@ -26,7 +26,7 @@ parser.add_argument("-d","--debug",
                     help = "Run flask server as debug mode",
                     action = "store_true")
 parser.add_argument("-p", "--port",
-                    help = "API server port",
+                    help = "API server port. Default is 31337",
                     default = 31337)
 parser.add_argument("--backup",
                     help = "On error, back up the challenge directory as name.bak",

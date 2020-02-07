@@ -89,7 +89,7 @@ def gen_docker_manage_scripts(path, props):
 def gen_dockerfile(path, props):
     name = props["name"]
     arch = props["arch"]
-    os = props["ver"]
+    os = props["os"]
     bin_name = props["bin"]
     user = "user" if "user" not in props.keys() else props["user"]
     dock_opts = None if "dock_opts" not in props.keys() else props["dock_opts"]

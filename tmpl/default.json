@@ -1,8 +1,8 @@
 {
 	"name": "",
 	"arch": "",
-	"ver": "",
-	"chal-type": "",
+	"os": "",
+	"chall_type": "",
 	"flag": "",
 	"bin":"bin",
 	"user":"user",

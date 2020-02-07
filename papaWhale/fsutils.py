@@ -39,12 +39,12 @@ def make_dist(chall_dir, props):
     
 def check_chall_dir(chall_dir, props):
     props = load_props(chall_dir)
-    chall_type = props["chal-type"]
+    chall_type = props["chall_type"]
 
     if not chall_dir.joinpath("props.json").exists():
         return False
     
-    if chall_type == "auto" or "cdock":
+    if chall_type == "docker":
         required = ["flag", props["bin"], props["test"]]
     elif chall_type == "custom":
         pass

@@ -24,11 +24,11 @@ Here is the example.
     from pwn import *
     import sys
     
-    #Grab the port and flag.
+    #Grab the port and flag from argvs
     port = sys.argv[1]
     flag = sys.argv[2]
     
-    p=remote("localhost",port)
+    p=remote("localhost", port)
     
     sa = lambda x,y : p.sendafter(x,y)
     cho = lambda x : sa("Choice",str(x))
@@ -99,6 +99,6 @@ Here is the example.
     p.sendline("cat /home/user/flag")
     p.recv()
     if flag in p.recv(4096):
-        sys.exit(False)
+        sys.exit(False) # If success, return False!
     else:
         sys.exit(True)

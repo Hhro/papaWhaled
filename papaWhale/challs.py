@@ -39,29 +39,21 @@ def list_challs():
     return jsonify(challs)
 
 def prepare_chall(chall_path, props):
-    chall_type = props["chal-type"]
+    chall_type = props["chall_type"]
 
-    if chall_type == "auto" or chall_type == "cdock":
+    if chall_type == "docker":
         gen_dockerfile(chall_path, props)
         gen_docker_manage_scripts(chall_path, props)
     else:   #Full custom
         pass
 
 def run_chall(args):
-    props_json = None
-    if args["props"] != None:
-        props_json = json.load(args["props"].stream)
-        chall_type = props_json["chal-type"]
-        flag = props_json["flag"]
-        name = props_json["name"]
-        port = props_json["port"]
-    else:
-        chall_type = args["chal-type"]
-        flag = args["flag"] 
-        name = args["name"] 
-        port = args["port"]
-
     chall_file = args["file"]
+    props_json = json.load(args["props"].stream)
+    chall_type = props_json["chall_type"]
+    flag = props_json["flag"]
+    name = props_json["name"]
+    port = props_json["port"]
 
     if port == "auto":
         port = find_avail_port()
@@ -98,7 +90,7 @@ def run_chall(args):
     set_chall_dir_perm(chall_dir_path, props)
 
 
-    if chall_type == "auto" or chall_type == "custom_dock":
+    if chall_type == "docker" or chall_type == "custom_dock":
         err = run_docker_chall(chall_dir_path, props)
         if err == BUILD_FAIL:
             handle_error(name)

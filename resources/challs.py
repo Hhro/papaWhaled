@@ -19,17 +19,8 @@ class ChallengeListAPI(Resource):
 class ChallengeUploadAPI(Resource):
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("props",type=werkzeug.datastructures.FileStorage, location='files', default=None)
-        parser.add_argument("name",type=str,default=None)
-        parser.add_argument("arch",type=str,default=None)
-        parser.add_argument("chal-type",type=str,default=None)
-        parser.add_argument("ver",type=str,default=None)
-        parser.add_argument("port",type=str,default=None)
-        parser.add_argument("dockerfile",type=werkzeug.datastructures.FileStorage, location='files')    ## would be removed
-        parser.add_argument("run-sh",type=str)
-        parser.add_argument("stop-sh",type=str)
-        parser.add_argument("file",required=True,type=werkzeug.datastructures.FileStorage, location='files')
-        parser.add_argument("flag",type=str,default=None)
+        parser.add_argument("props", required=True, type=werkzeug.datastructures.FileStorage, location='files')
+        parser.add_argument("file", required=True, type=werkzeug.datastructures.FileStorage, location='files')
 
         args = parser.parse_args()
         resp = run_chall(args)

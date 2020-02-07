@@ -1,10 +1,10 @@
-# APIs
+# APIs(v1.1)
+
+---
 
 # 1. List
 
 Get list of challenges deployed on server.
-
-
 
 ## Specifications
 
@@ -24,8 +24,6 @@ Get list of challenges deployed on server.
     "message": "The method is not allowed for the requested URL."
     }
     ```
-
-
 
 ## Example
 
@@ -55,15 +53,11 @@ Get list of challenges deployed on server.
     }
     ]
 
-
-
 ---
 
 # 2. Deploy
 
 Upload challenge, build docker image, and run container.
-
-
 
 ## Specifications
 
@@ -71,27 +65,8 @@ Upload challenge, build docker image, and run container.
 - **Method:** POST
 - **Header:** Not required
 - **Body**
-    - chal-type: Set type of deployment.
-        - auto: Generate dockerfile, build image, run container would be fully automated.
-        - custom_dock: Write dockerfile yourself. Other things are same as auto.
-    - arch: Challenge is built for this architecture. *Not required on custom_dock.*
-    Only supports **x86 and x64.**
-    - ver: Challenge would be run on this version of ubuntu. *Not required on custom_dock.*
-    Only supports **16.04 and 18.04.**
-    - name: Challenge name. If name is already in used, error occurs.
-    - port: Challenge would be run on this port.
-        - auto: papaWhaled will automatically select port that is not used.
-        - [31000-32000]: If port is aleready in used, error occurs.
-    - file: Challenge zip file. File must include "**props.json", binary and test script.**
-        - props.json: Pass the role of included files. Can have following key-values.
-
-            "bin": name of challenge file
-            "test": test script or binary
-
-        - binary: challenge file
-        - test script: It would be used to determine whether challenge is successfully deployed or not.
-    - flag: Solver would get this flag.
-    - dockerfile: Written docker file. **Must be encoded as base64.** *Not required on auto.*
+    - props: Property json file. Name must be `props.json`. Check detail at [here](https://www.notion.so/hhro/About-props-json-c5c376b31cb243f1bc39fc6591732951).
+    - file: Challenge zip file.
 - **Response:**
 
 **On success,** 
@@ -101,6 +76,20 @@ Upload challenge, build docker image, and run container.
     "port": "31000",
     "status": 200,
     "body": "Challenge 'test' is now running on 31000"
+}
+```
+
+**On success, and libs are passed** 
+
+```json
+{
+    "status": 200,
+    "body": "Challenge 'zerotask' is now running on 31000",
+    "port": "31000",
+    "libs": [
+        "50390b2ae8aaa73c47745040f54e602f",
+        "18403538a12facf8aced1dcfcccef1ba"
+    ]
 }
 ```
 
@@ -165,41 +154,43 @@ Upload challenge, build docker image, and run container.
         "body": "Test has failed. Something is wrong on your challenge binary or test file"
     }
     ```
-
-
+    
+    
 
 ## Example
 
-### **Auto**
+### docker
 
-![APIs/Untitled.png](img/auto_success.png)
+- POST
 
+![APIs_v1_1/Untitled.png](APIs_v1_1/Untitled.png)
 
+- props.json
 
-### Custom_dock
+    ```json
+    {
+        "name":"zerotask",
+        "bin":"task",
+        "flag":"flag{pl4y_w1th_u4F_ev3ryDay_63a9d2a26f275685665dc02b886b530e}",
+        "port":"auto",
+        "arch":"x64",
+        "os":"ub1804",
+        "libs":["libc-2.27.so","libcrypto.so.1.0.0"],
+        "chall_type":"docker",
+        "dock_opts":["COPY libcrypto.so.1.0.0 /usr/lib/"],
+        "dist":["bin","libs"]
+    }
+    ```
 
-![APIs/Untitled%201.png](img/cdock_success.png)
+- 0ctf_zerotask.zip
 
-```dockerfile
-//dockerfile: encode it as base64 to pass it into request body.
-FROM nsjail:18.04
-RUN useradd -m -d /home/user -s /bin/bash -u 1000 user
-COPY {bin} /home/user/{bin}
-COPY flag /home/user/flag
-COPY libsplaid.so.1 /usr/lib/libsplaid.so.1
-CMD su user -c 'nsjail -Ml --port 31000 --chroot / --user 1000 --group 1000 /home/user/{bin}'
-EXPOSE 31000
-```
-
-
+![APIs_v1_1/Untitled_1.png](APIs_v1_1/Untitled_1.png)
 
 ---
 
 # 3. Restart
 
 Restart the specific challenge.
-
-
 
 ## Specifications
 
@@ -247,4 +238,31 @@ Terminate challenge conatiner and delete every resources related with the challe
 - **Header**: Not required
 - **Body**
     - name: name of the challenge which needs to be terminated.
-- **Response**
+
+---
+
+# 5. Download challenge
+
+Download the challenge distribution.
+
+## Specifications
+
+- **Endpoint**: /chllas/download/{string:name}
+- **Method**: GET
+- **Header**: Not required
+- **Body**
+    - name: challenge name
+
+---
+
+# 6. Download library
+
+Download the library.
+
+## Specifications
+
+- **Endpoint**: /libs/download/{string:hint}
+- **Method**: GET
+- **Header**: Not required
+- **Body**
+    - hint: md5sum of library file

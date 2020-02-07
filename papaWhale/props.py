@@ -10,8 +10,8 @@ NOT_EXIST = 404
 COLLISION = 409
 SERVER_ERROR = 500
 
-avail_props = ["name","arch","ver","chal-type","flag","test","bin","build_opts","run_opts","dock_opts","dist","libs"]
-required_props = ["name","arch","ver","chal-type","flag","test","bin","dist"]
+avail_props = ["name","arch","os","chall_type","flag","test","bin","build_opts","run_opts","dock_opts","dist","libs","port"]
+required_props = ["name","arch","os","chall_type","flag","test","bin","dist","port"]
 
 def load_props(chall_dir):
     props_path = chall_dir.joinpath("props.json")
