@@ -163,7 +163,7 @@ Upload challenge, build docker image, and run container.
 
 - POST
 
-![APIs_v1_1/Untitled.png](APIs_v1_1/Untitled.png)
+![img/Untitled.png](img/Untitled.png)
 
 - props.json
 
@@ -184,7 +184,7 @@ Upload challenge, build docker image, and run container.
 
 - 0ctf_zerotask.zip
 
-![APIs_v1_1/Untitled_1.png](APIs_v1_1/Untitled_1.png)
+![img/Untitled_1.png](img/Untitled_1.png)
 
 ---
 
